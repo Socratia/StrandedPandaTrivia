@@ -1,0 +1,4 @@
+file_name: triviaset.json
+question_count: 15
+admins: <admin1>,<admin2>,<admin3>
+season: 1

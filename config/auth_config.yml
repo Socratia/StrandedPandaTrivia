@@ -1,0 +1,6 @@
+host: irc.twitch.tv
+port: 6667
+nick: <yourbotname>
+pass: <youroauthkey>
+chan: <yourchannelname>
+encoding: utf-8
