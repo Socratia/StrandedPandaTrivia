@@ -11,22 +11,6 @@ import yaml
 import asyncio
 import os
 import random
-import requests
-
-def bearertoken():
-    return requests.post("https://id.twitch.tv/oauth2/token?client_id=wfrdks6tgs8vc7xbq4wyszva6an3ch&client_secret=u2nwsw9uxgot0snkugpktq5g6tgk83&grant_type=client_credentials&scope=user:read:email")
-
-twitchurl = "https://api.twitch.tv/extensions/message/224112012"
-#twitchurl = "https://api.twitch.tv/extensions/message/175498103"
-tokenresponse = json.loads(bearertoken().content.decode('utf-8'))
-twitchmessage = {"content_type":"application/json","message":{},"targets":["broadcast"]}
-twitchheaders = {"Authorization": f'Bearer {tokenresponse["access_token"]}',"Client-Id":"wfrdks6tgs8vc7xbq4wyszva6an3ch","Content-Type": "application/json"}
-
-def postscores(scores):
-    twitchmessage["message"] = scores
-    requests.post(twitchurl,data = twitchmessage,headers = twitchheaders)
-
-
 
 class ChatBot(commands.Bot):
         
@@ -45,9 +29,6 @@ class ChatBot(commands.Bot):
         self.scoringopen = False
         self.answermessages = {}
         self.refresh_scores()
-        self.mattshotcount = 0
-        self.jeffshotcount = 0
-        self.ashleyshotcount = 0
         try:
             self.pastwinners = self.scores[f'Season {self.trivia_config["season"]}']['shirtwinners']
         except:
@@ -60,9 +41,7 @@ class ChatBot(commands.Bot):
             self.questionlist.append(Question(question))
         for player in self.scores[f'Season {self.trivia_config["season"]}']['scoreboard'].items():
             self.players.append(Player(player))
-            
-        #silly stuff, don't add to final code push
-        self.alcoholics = []
+
     
     #updates the scoreboard dict object
     def refresh_scores(self):
@@ -128,62 +107,6 @@ class ChatBot(commands.Bot):
         else:
             print('Received call for next question, but an active question exists or it is not an admin. Ignoring call.')
     
-    @commands.command(name='shot')
-    async def shot(self, ctx):
-        if any(ctx.message.content.split()[1].lower() == drinker.drinkername.lower() for drinker in self.alcoholics):
-            for drinker in self.alcoholics:
-                if drinker.drinkername.lower() == ctx.message.content.split()[1].lower():
-                    if int(ctx.message.content.split()[2])>1:
-                        drinker.shotcount += int(ctx.message.content.split()[2])
-                    else:
-                        drinker.shotcount += 1
-                    shotcount = drinker.shotcount
-                    drinkerstr = drinker.drinkername
-                    break
-        else:
-            drinkerstr = ctx.message.content.split()[1]
-            try:
-                if int(ctx.message.content.split()[2])>1:
-                    shotcount = int(ctx.message.content.split()[2])
-            except:
-                shotcount = 1
-            self.alcoholics.append(Alcoholic(drinkerstr,shotcount))
-        await ctx.send(f"{drinkerstr}'s shot count is at {shotcount}!")
-    """
-    @commands.command(name='friend')
-    async def friend(self, ctx):
-        if ctx.author.name not in self.scores[f'Season {self.trivia_config["season"]}']['scoreboard'].keys():
-            user = Player(ctx.author.name)
-            user.seasonpoints += 15
-            self.players.append(user)
-            await ctx.send(f'Hello @{ctx.author.name} and welcome to trivia! You have been given 15 bonus points for the season!')
-            inviter = ctx.message.content.split()[1].lower()
-            if any(inviter == player.name for player in self.players):
-                for player in self.players:
-                    if player.name == inviter:
-                        player.seasonpoints += 10
-                        await ctx.send(f'Thanks @{inviter} for bringing a friend! You have been given 10 bonus points for the season!')
-            else:
-                user = Player(inviter)
-                self.players.append(user)
-                scorestr = f"User {user.name} has 10 points for the season. Welcome to trivia!"
-            self.commit_scores()
-        else:
-            await ctx.send(f'Nice try {ctx.author.name}, but you have already been here getting points!')
-    """    
-    @commands.command(name='shotcount')
-    async def shotcount(self, ctx):
-        if any(ctx.message.content.split()[1].lower() == drinker.drinkername.lower() for drinker in self.alcoholics):
-            for drinker in self.alcoholics:
-                if drinker.drinkername.lower() == ctx.message.content.split()[1].lower():
-                    shotcount = drinker.shotcount
-                    drinkername = drinker.drinkername
-        else:
-            drinkername = ctx.message.content.split()[1]
-            shotcount = 0
-            self.alcoholics.append(Alcoholic(drinkername,shotcount))
-        await ctx.send(f"{drinkername}'s shot count is at {shotcount}!")
-            
     @commands.command(name='end')
     #!end ends this game of trivia, commits scores to json, and refreshes the scores
     async def endtrivia(self, ctx):
@@ -272,12 +195,6 @@ class ChatBot(commands.Bot):
             for proof in self.active_question.deepcut:
                 if answer[1].lower() == proof.lower():
                     self.point_dict[answer[0]] = 3
-            #for proof in self.active_question.answers:
-            #    if answer[1].lower() == proof.lower():
-            #        self.point_dict[answer[0]] = 0
-            #for proof in self.active_question.deepcut:
-            #    if answer[1].lower() == proof.lower():
-            #        self.point_dict[answer[0]] = 3
                 
         #check if only 1 person answered, if so, award 3 bonus points
         for name,points in self.point_dict.items():
@@ -389,13 +306,7 @@ class ChatBot(commands.Bot):
                     else:
                         continue
             await ctx.send(returnstr)
-            
-    @commands.command(name='gate')
-    #!gate <str> will make the bot respond with <str>GATE!!! in the chat
-    async def gate(self, ctx):
-        print(f'Received gate call from {ctx.author.name}.')
-        await ctx.send(f'{ctx.message.content.split()[1].upper()}GATE!!!')
-            
+
     @commands.command(name='stop')
     #!stop forces the chatbot to shut down
     async def stop(self, ctx):
@@ -496,12 +407,6 @@ class Player(object):
             self.seasonpoints = 0
             self.name = playername
         self.gamepoints = pointstart
-        
-#silly stuff, don't add to final code push
-class Alcoholic(object):
-    def __init__(self,name, shotcount=0):
-        self.drinkername = name
-        self.shotcount = shotcount
         
 if __name__ == '__main__':
     bot = ChatBot()
