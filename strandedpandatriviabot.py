@@ -15,11 +15,16 @@ import random
 class ChatBot(commands.Bot):
         
     def __init__(self):
+        #load the auth and connect to twitch
         with open(os.path.join(os.getcwd(),'config','auth_config.yml')) as auth:
             self.auth = yaml.safe_load(auth)
         super().__init__(irc_token=f"{self.auth['pass']}", client_id='...', nick=f"{self.auth['nick']}", prefix='!',initial_channels=[f"{self.auth['chan']}"])
+
+        #load the trivia configuration
         with open(os.path.join(os.getcwd(),'config','trivia_config.yml')) as config:
             self.trivia_config = yaml.safe_load(config)
+        
+        #create admins array, empty players and questions arrays, boolean variables, and empty answer messages object
         self.admins = [i.strip() for i in self.trivia_config['admins'].split(",")]
         self.players = []
         self.questionlist = []
@@ -28,6 +33,8 @@ class ChatBot(commands.Bot):
         self.active_question = False
         self.scoringopen = False
         self.answermessages = {}
+
+        #load the scoreboard, set the list of past winners, increment the game number
         self.refresh_scores()
         try:
             self.pastwinners = self.scores[f'Season {self.trivia_config["season"]}']['shirtwinners']
@@ -35,10 +42,14 @@ class ChatBot(commands.Bot):
             self.scores[f'Season {self.trivia_config["season"]}'] = {"gamesplayed":0, "shirtwinners":[], "scoreboard":{}}
             self.pastwinners = self.scores[f'Season {self.trivia_config["season"]}']['shirtwinners']
         self.game_number = self.scores[f'Season {self.trivia_config["season"]}']['gamesplayed']+1
+
+        #load the questions and populate the questions array
         with open(os.path.join(os.getcwd(),'config','triviaset.json')) as self.questions:
             self.questions = json.load(self.questions)
         for question in self.questions.items():
             self.questionlist.append(Question(question))
+        
+        #populate the players array
         for player in self.scores[f'Season {self.trivia_config["season"]}']['scoreboard'].items():
             self.players.append(Player(player))
 
@@ -57,9 +68,7 @@ class ChatBot(commands.Bot):
         for player in sorted(self.players, key=lambda player:player.gamepoints, reverse=True):
             self.scores[f'Season {self.trivia_config["season"]}'][f'Game {self.game_number}'][player.name] = player.gamepoints
         with open(os.path.join(os.getcwd(),'config','scores',"scoreboard.json"),'w') as outfile:
-            json.dump(self.scores, outfile, indent=4)
-        #postscores(self.scores[f'Season {self.trivia_config["season"]}'][f'Game {self.game_number}'])
-        
+            json.dump(self.scores, outfile, indent=4)    
         
     
     #Broadcast ready state to twitch channel
